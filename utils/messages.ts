@@ -19,6 +19,8 @@ export interface MatchState {
   status: MatchStatus;
   url: string | null;
   failure: string | null;
+  /** Whether importing again could fix a failure: only a failed download can be. */
+  retryable: boolean;
 }
 
 export type Request =

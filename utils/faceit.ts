@@ -13,11 +13,10 @@ export function matchIdFromUrl(url: string): string | null {
 
 /**
  * Where the button goes: under FACEIT's own "Watch demo" button, in the match room's info
- * panel. Null until FACEIT has rendered it.
+ * panel. A selector rather than a lookup, because WXT's autoMount refuses an anchor that
+ * already exists when it starts.
  */
-export function findButtonAnchor(): Element | null {
-  return document.querySelector('div[name="info"] div:first-child > div:first-child > button');
-}
+export const BUTTON_ANCHOR = 'div[name="info"] div:first-child > div:first-child > button';
 
 /**
  * The page script (MAIN world) and the content script (isolated world) talk with

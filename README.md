@@ -41,7 +41,7 @@ Everything that relies on FACEIT's DOM or internal endpoints is in `utils/faceit
 Sign-in uses a public Laravel Passport client on Stratbase with no client secret. Create it once with both browsers' redirect URLs from `browser.identity.getRedirectURL()`:
 
 - Chrome: `https://<extension id>.chromiumapp.org/`
-- Firefox: `https://<hash of the add-on id>.extensions.allizom.org/` (add-on ID `extension@stratbase.app`, Firefox 128+)
+- Firefox: `https://<hash of the add-on id>.extensions.allizom.org/` (add-on ID `extension@stratbase.app`, Firefox 140+)
 
 ```sh
 php artisan passport:client --public --name="Stratbase extension" \
