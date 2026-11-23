@@ -1,0 +1,8 @@
+@import '@/assets/stratbase.css';
+
+/* The button lives in a shadow root, so FACEIT's styles and ours can't touch each other. */
+:host {
+  all: initial;
+  display: block;
+  margin: 12px 0;
+}
