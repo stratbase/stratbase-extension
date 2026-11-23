@@ -1,4 +1,4 @@
-import { findButtonAnchor, matchIdFromUrl } from '@/utils/faceit';
+import { BUTTON_ANCHOR, matchIdFromUrl } from '@/utils/faceit';
 import { type ImportButton, mountImportButton } from './button';
 import './style.css';
 
@@ -11,9 +11,11 @@ export default defineContentScript({
   cssInjectionMode: 'ui',
   async main(ctx) {
     let current: { matchId: string; ui: ShadowRootContentScriptUi<ImportButton> } | null = null;
+    // Where the page is going. On Chromium WXT reports a navigation before location changes.
+    let url = location.href;
 
     async function sync() {
-      const matchId = matchIdFromUrl(location.href);
+      const matchId = matchIdFromUrl(url);
 
       if (current?.matchId === matchId) {
         return;
@@ -29,14 +31,14 @@ export default defineContentScript({
       const ui = await createShadowRootUi<ImportButton>(ctx, {
         name: 'stratbase-import',
         position: 'inline',
-        anchor: findButtonAnchor,
+        anchor: BUTTON_ANCHOR,
         append: 'after',
         onMount: (container) => mountImportButton(container, matchId),
         onRemove: (button) => button?.destroy(),
       });
 
       // The player may have moved on while the UI was made.
-      if (matchIdFromUrl(location.href) !== matchId || current !== null) {
+      if (matchIdFromUrl(url) !== matchId || current !== null) {
         ui.remove();
 
         return;
@@ -46,7 +48,10 @@ export default defineContentScript({
       ui.autoMount();
     }
 
-    ctx.addEventListener(window, 'wxt:locationchange', () => void sync());
+    ctx.addEventListener(window, 'wxt:locationchange', (event) => {
+      url = event.newUrl.href;
+      void sync();
+    });
     await sync();
   },
 });

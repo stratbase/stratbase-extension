@@ -11,7 +11,7 @@ import { type MatchState, type Response, type Session, send } from '@/utils/mess
 type View =
   | { kind: 'busy'; label: string; note?: string }
   | { kind: 'action'; label: string; note?: string; error?: boolean; onClick: () => void }
-  | { kind: 'link'; label: string; href: string; note?: string };
+  | { kind: 'link'; label: string; href: string; note?: string; error?: boolean };
 
 /** How often to check on an import while Stratbase works on it, and on a demo FACEIT hasn't published. */
 const POLL_MS = { downloading: 5_000, processing: 15_000, notReady: 30_000 };
@@ -58,7 +58,7 @@ export function mountImportButton(container: HTMLElement, matchId: string): Impo
 
     if (view.note) {
       const note = document.createElement('p');
-      note.className = view.kind === 'action' && view.error ? 'note error' : 'note';
+      note.className = view.kind !== 'busy' && view.error ? 'note error' : 'note';
       note.setAttribute('role', 'status');
       note.textContent = view.note;
       children.push(note);
@@ -139,7 +139,10 @@ export function mountImportButton(container: HTMLElement, matchId: string): Impo
       case 'ready':
         return render({ kind: 'link', label: 'Open in Stratbase', href: state.url! });
       case 'failed':
-        return render({ kind: 'action', label: 'Try again', note: state.failure ?? undefined, error: true, onClick: importWithLink });
+        // Downloading again only helps when the download failed: the same file analyses the same way.
+        return state.retryable
+          ? render({ kind: 'action', label: 'Try again', note: state.failure ?? undefined, error: true, onClick: importWithLink })
+          : render({ kind: 'link', label: 'Open in Stratbase', note: state.failure ?? undefined, error: true, href: state.url! });
     }
   }
 
