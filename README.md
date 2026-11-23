@@ -52,7 +52,11 @@ Put the client ID in `WXT_OAUTH_CLIENT_ID` in your local `.env`, and in the `OAU
 
 ## Releases
 
-Tagging a commit `vX.Y.Z` builds both zips in GitHub Actions (against `https://stratbase.app`) and attaches them to a GitHub release. The Chrome Web Store and Firefox Add-ons packages are those zips, so anyone can compare them against the tagged source.
+Bump `version` in `package.json` and merge to `main`. GitHub Actions builds both zips against `https://stratbase.app` and publishes them as release `v<version>`. Merges that don't change the version don't release anything. The build fails rather than release without the `OAUTH_CLIENT_ID` repository variable.
+
+To install a release in Chrome, unzip `stratbase-extension-<version>-chrome.zip`, open `chrome://extensions`, turn on **Developer mode**, click **Load unpacked** and choose the folder. The manifest's `key` pins the extension ID to `joonefmddfmanlgikenehlfopafpapng` wherever it's unpacked, so its sign-in redirect is always `https://joonefmddfmanlgikenehlfopafpapng.chromiumapp.org/`.
+
+The Chrome Web Store rejects a manifest with a `key`, so build store submissions with `WXT_STORE_BUILD=true bun run zip`. The store assigns its own ID, which needs its own redirect URL on the OAuth client.
 
 ## Licence
 
