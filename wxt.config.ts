@@ -22,7 +22,6 @@ export default defineConfig({
               // It sends Stratbase the match and FACEIT's link to its demo, and signs in to Stratbase.
               data_collection_permissions: { required: ['websiteContent', 'authenticationInfo'] },
             },
-            gecko_android: { strict_min_version: '142.0' },
           },
         }
       : {}),
