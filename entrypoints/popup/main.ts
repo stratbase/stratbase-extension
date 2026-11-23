@@ -56,7 +56,7 @@ async function refresh() {
 
 async function signIn() {
   render(paragraph('Signing in…'));
-  const response = await send<Session | null>({ type: 'session:sign-in' });
+  const response = await send({ type: 'session:sign-in' });
 
   return response.ok ? refresh() : render(paragraph(response.error), button('Try again', signIn));
 }

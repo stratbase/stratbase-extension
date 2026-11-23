@@ -52,7 +52,7 @@ async function call<T>(method: 'GET' | 'POST', path: string, body?: object): Pro
 
   const json = (await response.json().catch(() => null)) as Record<string, unknown> | null;
 
-  if (response.ok) {
+  if (response.ok && json !== null) {
     return { ok: true, data: json as T };
   }
 

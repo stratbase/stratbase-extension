@@ -61,6 +61,8 @@ export async function signOut(): Promise<void> {
   await tokens.setValue(null);
 }
 
+let refreshing: Promise<string | null> | null = null;
+
 /**
  * A current access token, refreshed when it is about to expire, or null when signed out.
  */
@@ -75,23 +77,37 @@ export async function accessToken(): Promise<string | null> {
     return current.accessToken;
   }
 
-  if (!current.refreshToken) {
+  // Passport replaces the refresh token on every use, so two refreshes at once would sign the second out.
+  refreshing ??= refresh(current.refreshToken).finally(() => (refreshing = null));
+
+  return refreshing;
+}
+
+async function refresh(refreshToken: string | null): Promise<string | null> {
+  if (!refreshToken) {
     await signOut();
 
     return null;
   }
 
   try {
-    const refreshed = await requestTokens({ grant_type: 'refresh_token', refresh_token: current.refreshToken });
+    const refreshed = await requestTokens({ grant_type: 'refresh_token', refresh_token: refreshToken });
     await tokens.setValue(refreshed);
 
     return refreshed.accessToken;
-  } catch {
-    await signOut();
+  } catch (error) {
+    // Only a refused token signs the player out; being offline for a moment shouldn't.
+    if (error instanceof TokenRefused) {
+      await signOut();
 
-    return null;
+      return null;
+    }
+
+    throw error;
   }
 }
+
+class TokenRefused extends Error {}
 
 async function requestTokens(params: Record<string, string>): Promise<Tokens> {
   const response = await fetch(`${STRATBASE_URL}/oauth/token`, {
@@ -100,8 +116,12 @@ async function requestTokens(params: Record<string, string>): Promise<Tokens> {
     body: new URLSearchParams({ client_id: OAUTH_CLIENT_ID, ...params }),
   });
 
+  if (response.status === 400 || response.status === 401) {
+    throw new TokenRefused('Stratbase refused the sign-in.');
+  }
+
   if (!response.ok) {
-    throw new Error(`Stratbase refused the sign-in (HTTP ${response.status}).`);
+    throw new Error(`Stratbase couldn't sign you in (HTTP ${response.status}).`);
   }
 
   const body = (await response.json()) as { access_token: string; refresh_token?: string; expires_in: number };

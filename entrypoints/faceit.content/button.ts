@@ -68,6 +68,10 @@ export function mountImportButton(container: HTMLElement, matchId: string): Impo
   }
 
   function later(ms: number, then: () => void) {
+    if (destroyed) {
+      return;
+    }
+
     clearTimeout(timer);
     timer = setTimeout(then, ms);
   }
@@ -87,7 +91,7 @@ export function mountImportButton(container: HTMLElement, matchId: string): Impo
 
   async function signIn() {
     render({ kind: 'busy', label: 'Signing in…' });
-    const response = await send<Session | null>({ type: 'session:sign-in' });
+    const response = await send({ type: 'session:sign-in' });
 
     return response.ok ? refresh() : showError(response, signIn);
   }
@@ -108,6 +112,11 @@ export function mountImportButton(container: HTMLElement, matchId: string): Impo
       return render({ kind: 'link', label: 'Subscribe to import', href: session.data.subscribeUrl, note: 'Importing FACEIT matches needs a Stratbase subscription.' });
     }
 
+    await checkMatch();
+  }
+
+  /** The session is only checked once: a later 401 or 402 comes back on the match itself. */
+  async function checkMatch() {
     const match = await send<MatchState>({ type: 'match:get', matchId });
 
     return match.ok ? show(match.data) : showError(match, refresh);
@@ -120,11 +129,11 @@ export function mountImportButton(container: HTMLElement, matchId: string): Impo
       case 'available':
         return render({ kind: 'action', label: 'Add to Stratbase', note: 'A teammate already imported this match.', onClick: () => importMatch(null) });
       case 'downloading':
-        later(POLL_MS.downloading, refresh);
+        later(POLL_MS.downloading, checkMatch);
 
         return render({ kind: 'busy', label: 'Downloading to Stratbase…' });
       case 'processing':
-        later(POLL_MS.processing, refresh);
+        later(POLL_MS.processing, checkMatch);
 
         return render({ kind: 'busy', label: 'Analysing on Stratbase…', note: 'This usually takes a few minutes. You can leave this page.' });
       case 'ready':
@@ -134,9 +143,13 @@ export function mountImportButton(container: HTMLElement, matchId: string): Impo
     }
   }
 
-  async function importWithLink() {
+  async function importWithLink(): Promise<void> {
     render({ kind: 'busy', label: 'Getting the demo from FACEIT…' });
     const link = await requestDownloadLink(matchId);
+
+    if (destroyed) {
+      return;
+    }
 
     if (link.status === 'not-ready') {
       later(POLL_MS.notReady, importWithLink);
@@ -151,11 +164,12 @@ export function mountImportButton(container: HTMLElement, matchId: string): Impo
     await importMatch(link.url);
   }
 
-  async function importMatch(downloadUrl: string | null) {
+  async function importMatch(downloadUrl: string | null): Promise<void> {
     render({ kind: 'busy', label: 'Sending to Stratbase…' });
     const response = await send<MatchState>({ type: 'match:import', matchId, downloadUrl });
 
-    return response.ok ? show(response.data) : showError(response, () => importMatch(downloadUrl));
+    // A retry later on needs a fresh link: FACEIT's last only minutes.
+    return response.ok ? show(response.data) : showError(response, downloadUrl ? importWithLink : () => importMatch(null));
   }
 
   render({ kind: 'busy', label: 'Checking Stratbase…' });

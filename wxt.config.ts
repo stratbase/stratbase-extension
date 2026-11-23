@@ -2,7 +2,6 @@ import { defineConfig } from 'wxt';
 
 const stratbaseUrl = process.env.WXT_STRATBASE_URL ?? 'https://stratbase.app';
 
-// See https://wxt.dev/api/reference/wxt/interfaces/inlineconfig.html
 export default defineConfig({
   // Firefox too: its MV2 build can't run the page script in FACEIT's own world.
   manifestVersion: 3,

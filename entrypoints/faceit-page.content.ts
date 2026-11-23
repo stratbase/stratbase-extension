@@ -164,31 +164,37 @@ async function findSiteKey(): Promise<string> {
   return key;
 }
 
-/** FACEIT's own copy of Turnstile, or Cloudflare's if FACEIT hasn't loaded it yet. */
-async function loadTurnstile(): Promise<Turnstile> {
-  for (let tries = 0; tries < 20 && !window.turnstile; tries++) {
-    await new Promise((resolve) => setTimeout(resolve, 100));
-  }
+let turnstilePromise: Promise<Turnstile> | null = null;
 
-  if (window.turnstile) {
-    return window.turnstile;
-  }
+/** FACEIT's own copy of Turnstile, or Cloudflare's if FACEIT hasn't loaded it. */
+function loadTurnstile(): Promise<Turnstile> {
+  turnstilePromise ??= (async () => {
+    if (!(await waitForTurnstile(500))) {
+      const script = document.createElement('script');
+      script.src = TURNSTILE_SCRIPT;
+      script.async = true;
+      document.head.append(script);
+    }
 
-  await new Promise<void>((resolve, reject) => {
-    const script = document.createElement('script');
-    script.src = TURNSTILE_SCRIPT;
-    script.async = true;
-    script.onload = () => resolve();
-    script.onerror = () => reject(new Error("Couldn't load FACEIT's security check."));
-    document.head.append(script);
+    const turnstile = await waitForTurnstile(5_000);
+
+    if (!turnstile) {
+      throw new Error("Couldn't load FACEIT's security check.");
+    }
+
+    return turnstile;
+  })().catch((error: unknown) => {
+    turnstilePromise = null;
+
+    throw error;
   });
 
-  for (let tries = 0; tries < 50 && !window.turnstile; tries++) {
-    await new Promise((resolve) => setTimeout(resolve, 100));
-  }
+  return turnstilePromise;
+}
 
-  if (!window.turnstile) {
-    throw new Error("Couldn't load FACEIT's security check.");
+async function waitForTurnstile(ms: number): Promise<Turnstile | undefined> {
+  for (let waited = 0; !window.turnstile && waited < ms; waited += 100) {
+    await new Promise((resolve) => setTimeout(resolve, 100));
   }
 
   return window.turnstile;

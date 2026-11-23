@@ -49,11 +49,11 @@ export interface DownloadLinkResponse {
  * Asks the page script for a signed link to the match's demo, made with the player's own
  * FACEIT session the way FACEIT's "Download demo" button makes one.
  */
-export function requestDownloadLink(matchId: string, timeoutMs = 120_000): Promise<DownloadLinkResult> {
+export function requestDownloadLink(matchId: string): Promise<DownloadLinkResult> {
   const id = crypto.randomUUID();
 
   return new Promise((resolve) => {
-    const timeout = setTimeout(() => finish({ status: 'error', error: 'FACEIT took too long to give a download link.' }), timeoutMs);
+    const timeout = setTimeout(() => finish({ status: 'error', error: 'FACEIT took too long to give a download link.' }), 120_000);
 
     function onMessage(event: MessageEvent) {
       const data = event.data as Partial<DownloadLinkResponse> | null;

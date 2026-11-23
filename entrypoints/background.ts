@@ -2,8 +2,6 @@ import { signIn, signOut } from '@/utils/auth';
 import type { Request, Response } from '@/utils/messages';
 import { getMatch, getSession, importMatch } from '@/utils/stratbase';
 
-const FACEIT_MATCH_ID = /^1-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
-
 export default defineBackground(() => {
   browser.runtime.onMessage.addListener((request: Request, sender, sendResponse) => {
     // Only the extension's own pages and its FACEIT content script may ask.
@@ -26,18 +24,15 @@ async function handle(request: Request): Promise<Response<unknown>> {
     case 'session:sign-in':
       await signIn();
 
-      return getSession();
+      return { ok: true, data: null };
     case 'session:sign-out':
       await signOut();
 
       return { ok: true, data: null };
     case 'match:get':
-      return FACEIT_MATCH_ID.test(request.matchId) ? getMatch(request.matchId) : invalidMatch();
+      return getMatch(request.matchId);
     case 'match:import':
-      return FACEIT_MATCH_ID.test(request.matchId) ? importMatch(request.matchId, request.downloadUrl) : invalidMatch();
+      return importMatch(request.matchId, request.downloadUrl);
   }
 }
 
-function invalidMatch(): Response<never> {
-  return { ok: false, error: "That isn't a FACEIT match." };
-}
