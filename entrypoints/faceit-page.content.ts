@@ -52,8 +52,8 @@ async function downloadLink(matchId: string): Promise<DownloadLinkResult> {
   const linkResponse = await fetch('/api/download/v2/demos/download-url', {
     method: 'POST',
     credentials: 'include',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ resource_url: resourceUrl, captcha_token: captchaToken }),
+    headers: { 'Content-Type': 'application/json', 'x-faceit-captcha-token': captchaToken },
+    body: JSON.stringify({ resourceUrl }),
   });
 
   if (!linkResponse.ok) {
@@ -63,11 +63,10 @@ async function downloadLink(matchId: string): Promise<DownloadLinkResult> {
     };
   }
 
-  const link = (await linkResponse.json()) as { payload?: { download_url?: string } };
+  const link = (await linkResponse.json()) as { payload?: { downloadUrl?: string; download_url?: string } };
+  const url = link.payload?.downloadUrl ?? link.payload?.download_url;
 
-  return link.payload?.download_url
-    ? { status: 'ok', url: link.payload.download_url }
-    : { status: 'error', error: "FACEIT didn't give a download link." };
+  return url ? { status: 'ok', url } : { status: 'error', error: "FACEIT didn't give a download link." };
 }
 
 // Turnstile
@@ -80,6 +79,8 @@ interface Turnstile {
 declare global {
   interface Window {
     turnstile?: Turnstile;
+    /** FACEIT's runtime config, which holds its Turnstile site key. */
+    faceitRuntime?: { APP_TURNSTILE_SITEKEY?: unknown };
   }
 }
 
@@ -124,10 +125,25 @@ async function turnstileToken(): Promise<string> {
 }
 
 /**
- * FACEIT doesn't put its Turnstile site key in the page, so it is found in FACEIT's
- * JavaScript bundles, which the browser has already cached.
+ * FACEIT's site keeps its Turnstile site key in its runtime config (`window.faceitRuntime`,
+ * also inlined in the page). Older versions of the site only had it in their JavaScript
+ * bundles, which are searched as a fallback.
  */
 async function findSiteKey(): Promise<string> {
+  const fromRuntime = window.faceitRuntime?.APP_TURNSTILE_SITEKEY;
+
+  if (typeof fromRuntime === 'string' && fromRuntime.startsWith('0x')) {
+    return fromRuntime;
+  }
+
+  const fromInlineConfig = Array.from(document.scripts)
+    .map((script) => /"APP_TURNSTILE_SITEKEY"\s*:\s*"(0x[A-Za-z0-9_-]+)"/.exec(script.textContent ?? '')?.[1])
+    .find((key) => key !== undefined);
+
+  if (fromInlineConfig) {
+    return fromInlineConfig;
+  }
+
   const fromPage = document.querySelector<HTMLElement>('[data-sitekey^="0x"]')?.dataset.sitekey;
 
   if (fromPage) {
