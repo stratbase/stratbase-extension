@@ -4,5 +4,14 @@
 :host {
   all: initial;
   display: block;
-  margin: 12px 0;
+}
+
+/* Spaced inside the shadow root: the page's layout drops a margin on the host. */
+.stratbase {
+  padding-bottom: 8px;
+}
+
+/* FACEIT's own buttons are 4px round. */
+.button {
+  border-radius: 4px;
 }
