@@ -1,10 +1,12 @@
 name: Release
 
-# Tagging a commit vX.Y.Z builds the Chrome and Firefox zips from it and attaches them to a
-# GitHub release, so what's in the stores can be checked against this source.
+# Every pull request builds the Chrome and Firefox zips. A push to main whose package.json
+# version has no release yet publishes those zips as GitHub release v<version>, so bumping the
+# version is all a release takes. The zips load unpacked (the Chrome build pins its extension ID);
+# store submissions are built with WXT_STORE_BUILD=true.
 on:
   push:
-    tags: ['v*']
+    branches: [main]
   pull_request:
 
 permissions:
@@ -18,11 +20,32 @@ jobs:
       - uses: oven-sh/setup-bun@v2
       - run: bun install --frozen-lockfile
       - run: bun run compile
+
+      - id: version
+        name: Check for an existing release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          version="v$(jq -r .version package.json)"
+          echo "tag=$version" >> "$GITHUB_OUTPUT"
+          if [ "$GITHUB_EVENT_NAME" = push ] && ! gh release view "$version" >/dev/null 2>&1; then
+            echo "release=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - if: steps.version.outputs.release == 'true' && vars.OAUTH_CLIENT_ID == ''
+        run: |
+          echo "::error::Set the OAUTH_CLIENT_ID repository variable before releasing: without it the extension can't sign in."
+          exit 1
+
       - run: bun run zip && bun run zip:firefox
         env:
           WXT_STRATBASE_URL: https://stratbase.app
           WXT_OAUTH_CLIENT_ID: ${{ vars.OAUTH_CLIENT_ID }}
-      - if: startsWith(github.ref, 'refs/tags/')
+
+      - if: steps.version.outputs.release == 'true'
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ steps.version.outputs.tag }}
+          target_commitish: ${{ github.sha }}
+          generate_release_notes: true
           files: .output/*.zip
