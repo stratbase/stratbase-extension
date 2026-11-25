@@ -139,7 +139,7 @@ export function mountImportButton(container: HTMLElement, matchId: string, place
       case 'downloading':
         later(POLL_MS.downloading, checkMatch);
 
-        return render({ kind: 'busy', label: 'Downloading to Stratbase…' });
+        return render({ kind: 'busy', label: 'Downloading to Stratbase…', note: 'Stratbase fetches it from FACEIT itself. You can leave this page.' });
       case 'processing':
         later(POLL_MS.processing, checkMatch);
 
