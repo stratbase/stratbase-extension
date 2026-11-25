@@ -11,12 +11,28 @@ export function matchIdFromUrl(url: string): string | null {
   return MATCH_ROOM.exec(url)?.[1] ?? null;
 }
 
+/** Where in a match room the button goes: the overview, or the stats tab FACEIT now opens by default. */
+export type Placement = 'overview' | 'stats';
+
+/** The stats tab and its sub-tabs: …/room/{match id}/scoreboard, …/scoreboard/duels and so on. */
+const STATS_TAB = /^[^?#]*\/room\/[^/?#]+\/scoreboard(?:[/?#]|$)/;
+
+export function placementFromUrl(url: string): Placement {
+  return STATS_TAB.test(url) ? 'stats' : 'overview';
+}
+
 /**
- * Where the button goes: under FACEIT's own "Watch demo" button, in the match room's info
- * panel. A selector rather than a lookup, because WXT's autoMount refuses an anchor that
- * already exists when it starts.
+ * Where the button goes. A selector rather than a lookup, because WXT's autoMount refuses an
+ * anchor that already exists when it starts.
+ *
+ * - overview: under FACEIT's own "Watch demo" button, in the match room's info panel.
+ * - stats: the stats tab has no demo buttons, so a full-width banner goes under its Summary,
+ *   Duels and Utility tabs, where FACEIT shows its own "What did you think…" feedback box.
  */
-export const BUTTON_ANCHOR = 'div[name="info"] div:first-child > div:first-child > button';
+export const BUTTON_ANCHORS: Record<Placement, string> = {
+  overview: 'div[name="info"] div:first-child > div:first-child > button',
+  stats: 'div[class*="styles__MainNavBar"]',
+};
 
 /**
  * The page script (MAIN world) and the content script (isolated world) talk with

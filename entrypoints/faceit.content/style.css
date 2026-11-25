@@ -15,3 +15,44 @@
 .button {
   border-radius: 4px;
 }
+
+/*
+ * On the stats tab: a full-width box like FACEIT's own "What did you think of the FACEIT
+ * Rating & Swing?" one, with the text on the left and the button on the right. FACEIT's
+ * column already spaces its children 32px apart.
+ */
+.stratbase.banner {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px;
+  border: 1px solid rgb(241 241 241 / 0.05);
+  border-radius: 8px;
+  background: rgb(18 18 18);
+  color: rgb(241 241 241);
+}
+
+.banner .copy {
+  flex: 1;
+  min-width: 0;
+}
+
+.banner .title {
+  margin: 0;
+  font: 400 14px/20px var(--font-sans);
+}
+
+.banner .title strong {
+  font-weight: 700;
+}
+
+.banner .note {
+  margin-top: 4px;
+  text-align: left;
+}
+
+.banner .button {
+  width: auto;
+  flex-shrink: 0;
+}

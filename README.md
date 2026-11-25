@@ -1,6 +1,6 @@
 # Stratbase browser extension
 
-This is a Chrome and Firefox (MV3) extension that adds an **Import to Stratbase** button to finished FACEIT CS2 match rooms, under FACEIT's **Watch demo** button. Click it to send the match demo straight to your Stratbase account for analysis.
+This is a Chrome and Firefox (MV3) extension that adds an **Import to Stratbase** button to finished FACEIT CS2 match rooms: under FACEIT's **Watch demo** button on the overview, and as a banner under the Summary/Duels/Utility tabs on the stats tab, which has no demo buttons. Click it to send the match demo straight to your Stratbase account for analysis.
 
 Importing matches requires a Stratbase subscription.
 
