@@ -1,11 +1,12 @@
 // Inlined: a content script's asset URL would resolve against faceit.com.
 import markUrl from '@/assets/mark.png?inline';
-import { requestDownloadLink } from '@/utils/faceit';
+import { type Placement, requestDownloadLink } from '@/utils/faceit';
 import { type MatchState, type Response, type Session, send } from '@/utils/messages';
 
 /**
- * The Import to Stratbase button on a FACEIT match room. Plain DOM: it's one button with a
- * line of text under it.
+ * The Import to Stratbase button on a FACEIT match room. Plain DOM: on the overview it's one
+ * button with a line of text under it; on the stats tab it's a full-width banner, with the
+ * text on the left and the button on the right.
  */
 
 type View =
@@ -20,9 +21,9 @@ export interface ImportButton {
   destroy(): void;
 }
 
-export function mountImportButton(container: HTMLElement, matchId: string): ImportButton {
+export function mountImportButton(container: HTMLElement, matchId: string, placement: Placement = 'overview'): ImportButton {
   const root = document.createElement('div');
-  root.className = 'stratbase';
+  root.className = placement === 'stats' ? 'stratbase banner' : 'stratbase';
   container.append(root);
 
   let timer: ReturnType<typeof setTimeout> | undefined;
@@ -54,17 +55,24 @@ export function mountImportButton(container: HTMLElement, matchId: string): Impo
     }
 
     button.append(view.label);
-    const children: Node[] = [button];
+    const note = document.createElement('p');
+    note.className = view.kind !== 'busy' && view.error ? 'note error' : 'note';
+    note.setAttribute('role', 'status');
+    note.textContent = view.note ?? '';
 
-    if (view.note) {
-      const note = document.createElement('p');
-      note.className = view.kind !== 'busy' && view.error ? 'note error' : 'note';
-      note.setAttribute('role', 'status');
-      note.textContent = view.note;
-      children.push(note);
+    if (placement === 'stats') {
+      const title = document.createElement('p');
+      title.className = 'title';
+      title.append('Analyse this match on ', Object.assign(document.createElement('strong'), { textContent: 'Stratbase' }));
+      note.textContent ||= 'Import the demo for a 2D replay, round breakdowns and stats.';
+      const copy = document.createElement('div');
+      copy.className = 'copy';
+      copy.append(title, note);
+
+      return root.replaceChildren(copy, button);
     }
 
-    root.replaceChildren(...children);
+    root.replaceChildren(...(view.note ? [button, note] : [button]));
   }
 
   function later(ms: number, then: () => void) {
